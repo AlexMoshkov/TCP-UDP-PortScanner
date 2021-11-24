@@ -1,9 +1,10 @@
 import select
 from struct import pack
 import socket
+from dnslib import DNSRecord, DNSError
+from scapy.layers.inet import IP, TCP, ICMP
 
 from port_info import PortInfo
-from utils import get_sockets_dict
 from scapy.all import *
 
 
@@ -57,20 +58,59 @@ def create_tcp_socket(address: str, port: int) -> socket.socket:
     return sock
 
 
+DNS_MESSAGE = b'\x00\x03\x01\x00\x00\x01\x00\x00\x00\x00\x00\x00\x01' \
+              b'h\x0croot-servers\x03net\x00\x00\x01\x00\x01'
+
+HTTP_MESSAGE = "GET / HTTP/1.1\nHost: andgein.ru\n\n".encode()
+
+
+def check_protocol(address: str, port: int) -> str:
+    conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    conn.connect((address, port))
+
+    conn.send(DNS_MESSAGE)
+    data = conn.recv(4096)
+    try:
+        parse_data = DNSRecord.parse(data)
+        print(parse_data.q)
+        return 'dns'
+    except DNSError:
+        pass
+    if data == DNS_MESSAGE:
+        return 'echo'
+
+    conn.send(HTTP_MESSAGE)
+    data = conn.recv(4096)
+    print(data)
+    if "HTTP".encode() in data:
+        return 'http'
+    else:
+        return '-'
+
+
 def scan(address: str, ports: [int], timeout: float = 2,
          num_threads: int = 512) -> [PortInfo]:
     ports_infos = []
     for i in range(0, len(ports), num_threads):
-        sockets = get_sockets_dict(address, ports[i:i + 50], create_tcp_socket)
-        rsockets, _, _ = select.select(sockets.keys(), [], [], timeout)
-        for sock, port in sockets.items():
-            if sock in rsockets:
-                pass
+        ports_group = ports[i:i + num_threads]
+        recv_start = time.time()
+        answered, unanswered = sr(IP(dst=address) / TCP(sport=55555, dport=ports_group, flags="S"),timeout=timeout)
+        recv_time = (time.time() - recv_start) * 1000
+        time.sleep(2)
+        for pkt in unanswered:
+            print(pkt[TCP].flags)
+            ports_infos.append(PortInfo(pkt.dport, "close", "tcp", recv_time))
+        for pkt, ans in answered:
+            print(ans[TCP].flags)
+            print(pkt.dport)
+            if ans.haslayer(TCP) and ans[TCP].flags == 18:  # syn ack
+                protocol = check_protocol(address, pkt.dport)
+                ports_infos.append(
+                    PortInfo(pkt.dport, "open", "tcp", recv_time, protocol))
+    return ports_infos
 
 
 if __name__ == '__main__':
-    s = create_tcp_socket('8.8.8.8', 53)
-    rsoc, _, _ = select.select([s], [], [], 2)
-    for sr in rsoc:
-        data, _ = sr.recv(4096)
-        print(data)
+    ports_infos = scan('80.93.177.132', range(50, 90), num_threads=2)
+    for port_info in ports_infos:
+        print(port_info)

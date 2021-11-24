@@ -8,8 +8,8 @@ from utils import check_dns_echo, get_sockets_dict
 from port_info import PortInfo
 from scapy.all import *
 
-DNS_MESSAGE = b'\x00\x03\x01\x00\x00\x01\x00\x00\x00\x00\x00\x00' \
-              b'\x01h\x0croot-servers\x03net\x00\x00\x01\x00\x01'
+DNS_MESSAGE = b'\x00\x03\x01\x00\x00\x01\x00\x00\x00\x00\x00\x00\x01' \
+              b'h\x0croot-servers\x03net\x00\x00\x01\x00\x01'
 
 
 def create_udp_sock(address: str, port: int) -> socket:
@@ -17,8 +17,10 @@ def create_udp_sock(address: str, port: int) -> socket:
     sock.sendto(DNS_MESSAGE, (address, port))
     return sock
 
+
 def create_udp_packet(address: str, port: int):
-    pkt = sr1(IP(dst=address)/UDP(sport=port, dport=port)/DNS(DNS_MESSAGE), verbose=0)
+    pkt = sr1(IP(dst=address) / UDP(sport=port, dport=port) / DNS(DNS_MESSAGE),
+              verbose=0)
     r, w, x = select.select([pkt], [], [], 2)
     print(r)
     # if pkt == None:
@@ -39,23 +41,27 @@ def scan(address: str, ports: list[int], timeout: float = 2,
          num_threads: int = 512) -> list[PortInfo]:
     ports_infos = []
     for i in range(0, len(ports), num_threads):
-        sockets = get_sockets_dict(address, ports[i:i + 50], create_udp_sock)
+        recv_start = time.time()
+        sockets = get_sockets_dict(address, ports[i:i + num_threads], create_udp_sock)
         rsockets, _, _ = select.select(sockets.keys(), [], [], timeout)
+        recv_time = (time.time() - recv_start) * 1000
         for sock, port in sockets.items():
-            status = "open"
-            protocol = None
+            status = "filtered"
+            protocol = '-'
             if sock in rsockets:
                 try:
                     data, addr = sock.recvfrom(4096)
                     protocol = check_dns_echo(data, DNS_MESSAGE)
+                    status = "open"
                 except ConnectionResetError:
                     status = "close"
-            ports_infos.append(PortInfo(port, status, "UDP", protocol))
+            ports_infos.append(
+                PortInfo(port, status, "UDP", recv_time, protocol))
     return ports_infos
 
 
 if __name__ == '__main__':
-    create_udp_packet('1.1.1.1', 53)
-    # ports_infos = scan('1.1.1.1', [68], timeout=2, num_threads=512)
-    # for port_info in ports_infos:
-    #     print(port_info)
+    # create_udp_packet('1.1.1.1', 53)
+    ports_infos = scan('8.8.8.8', range(0, 100), timeout=2, num_threads=512)
+    for port_info in ports_infos:
+        print(port_info)
