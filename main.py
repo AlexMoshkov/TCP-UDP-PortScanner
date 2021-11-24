@@ -1,5 +1,6 @@
 import argparse
 import udp_scanner
+import tcp_scanner
 
 
 def main():
@@ -18,19 +19,24 @@ def main():
                             help="number of threads")
     arg_parser.add_argument('-v', '--verbose', action='store_true',
                             help="enable verbose mode")
-    arg_parser.add_argument('-g,' '--guess', action='store_true',
+    arg_parser.add_argument('-g', '--guess', action='store_true',
                             help="definition of application layer protocols")
+
 
     args = arg_parser.parse_args()
     print(args)
     tcp_ports, udp_ports = parse_tcp_udp_ports(args.ports)
 
-    scanned_ports = []
-    scanned_ports += udp_scanner.scan(args.ip_address, udp_ports,
-                                      timeout=args.timeout,
-                                      num_threads=args.num_threads)
-    for scanned_port in scanned_ports:
-        print(scanned_port)
+    scanned_ports = udp_scanner.scan(args.ip_address, udp_ports,
+                                     timeout=args.timeout,
+                                     num_threads=args.num_threads)
+    scanned_ports += tcp_scanner.scan(args.ip_address, tcp_ports,
+                                     timeout=args.timeout,
+                                     num_threads=args.num_threads)
+
+    scanned_ports.sort(key=lambda info: (info.scan_protocol, info.port))
+    for port_info in filter(lambda p: p.status == "open", scanned_ports):
+        port_info.print(verbose=args.verbose, guess=args.guess)
 
 
 def parse_tcp_udp_ports(groups_ports: [str]) -> ([int], [int]):
