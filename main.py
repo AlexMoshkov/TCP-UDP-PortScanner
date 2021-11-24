@@ -61,3 +61,5 @@ def parse_group_ports(group: str) -> ([int], [int]):
 
 if __name__ == '__main__':
     main()
+
+# scapy использует select в файле libcap.py в классе _L2libpcapSocket в функции select

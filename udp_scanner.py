@@ -1,15 +1,21 @@
-import socket
-import select
-
-from scapy.layers.dns import DNS
-from scapy.layers.inet import IP, UDP, ICMP
-
-from utils import check_dns_echo, get_sockets_dict
+from dnslib import DNSRecord, DNSError
 from port_info import PortInfo
 from scapy.all import *
 
 DNS_MESSAGE = b'\x00\x03\x01\x00\x00\x01\x00\x00\x00\x00\x00\x00\x01' \
               b'h\x0croot-servers\x03net\x00\x00\x01\x00\x01'
+
+
+def check_dns_echo(data: bytes, send_data: bytes) -> str:
+    try:
+        dns_parse = DNSRecord.parse(data)
+        return "dns"
+    except DNSError:
+        pass
+
+    if data == send_data:
+        return "echo"
+    return "unknown"
 
 
 def create_udp_sock(address: str, port: int) -> socket:
@@ -18,23 +24,11 @@ def create_udp_sock(address: str, port: int) -> socket:
     return sock
 
 
-def create_udp_packet(address: str, port: int):
-    pkt = sr1(IP(dst=address) / UDP(sport=port, dport=port) / DNS(DNS_MESSAGE),
-              verbose=0)
-    r, w, x = select.select([pkt], [], [], 2)
-    print(r)
-    # if pkt == None:
-    #     print(f"{port} open")
-    # else:
-    #     print(pkt)
-    #     if pkt.haslayer(ICMP):
-    #         print(f"{port} close")
-    #     elif pkt.haslayer(DNS):
-    #         print(f"{port} dns")
-    #     elif pkt.haslayer(UDP):
-    #         print(f"{port} open udp")
-    #     else:
-    #         print(f"{port} unknown")
+def get_sockets_dict(address: str, ports: list[int]) -> dict[socket, int]:
+    sockets = dict()
+    for port in ports:
+        sockets[create_udp_sock(address, port)] = port
+    return sockets
 
 
 def scan(address: str, ports: list[int], timeout: float = 2,
@@ -42,7 +36,7 @@ def scan(address: str, ports: list[int], timeout: float = 2,
     ports_infos = []
     for i in range(0, len(ports), num_threads):
         recv_start = time.time()
-        sockets = get_sockets_dict(address, ports[i:i + num_threads], create_udp_sock)
+        sockets = get_sockets_dict(address, ports[i:i + num_threads])
         rsockets, _, _ = select.select(sockets.keys(), [], [], timeout)
         recv_time = (time.time() - recv_start) * 1000
         for sock, port in sockets.items():
@@ -61,7 +55,7 @@ def scan(address: str, ports: list[int], timeout: float = 2,
 
 
 if __name__ == '__main__':
-    # create_udp_packet('1.1.1.1', 53)
-    ports_infos = scan('8.8.8.8', range(0, 100), timeout=2, num_threads=512)
+    ports_infos = scan('80.93.177.132', range(0, 100), timeout=2,
+                       num_threads=512)
     for port_info in ports_infos:
         print(port_info)
