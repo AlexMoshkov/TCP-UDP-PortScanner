@@ -7,11 +7,11 @@ DNS_MESSAGE = b'\x00\x03\x01\x00\x00\x01\x00\x00\x00\x00\x00\x00\x01' \
               b'h\x0croot-servers\x03net\x00\x00\x01\x00\x01'
 
 
-def check_dns_echo(response: IP, answer: IP) -> str:
+def check_dns_echo(query: IP, answer: IP) -> str:
     if answer.haslayer(DNS):
-        return "dns"
-    elif raw(response) == raw(answer):
-        return "echo"
+        return 'dns'
+    elif raw(answer[Raw]) == raw(query[DNS]):
+        return 'echo'
     return "-"
 
 
@@ -23,14 +23,11 @@ def scan(address: str, ports: list[int], timeout: float = 2,
         answered, unanswered = sr(
             IP(dst=address) / UDP(sport=55555, dport=ports_group) / DNS(DNS_MESSAGE),
             timeout=timeout, verbose=0, multi=True)
-        print(unanswered)
         for req in unanswered:
             ports_infos.append(
                 PortInfo(req.dport, "filtered", "udp", timeout*1000))
 
         for req, ans in answered:
-            print(req.dport)
-            print(ans.sport)
             status = "filtered"
             protocol = '-'
             if ans.haslayer(UDP):

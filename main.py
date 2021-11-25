@@ -1,10 +1,12 @@
 import argparse
+import socket
+
 import udp_scanner
 import tcp_scanner
 
 
 def main():
-    arg_parser = argparse.ArgumentParser('PortScanner')
+    arg_parser = argparse.ArgumentParser('portscanner')
 
     arg_parser.add_argument('ip_address', type=str,
                             help="ip address of the scanning object")
@@ -22,11 +24,21 @@ def main():
     arg_parser.add_argument('-g', '--guess', action='store_true',
                             help="definition of application layer protocols")
     arg_parser.add_argument('-a', '--all', action='store_true',
-                            help="")
-
-
+                            help="see info about all ports")
     args = arg_parser.parse_args()
-    print(args)
+
+    try:
+        socket.inet_aton(args.ip_address)
+    except socket.error:
+        print("Invalid argument: ip_address")
+        exit(1)
+    if args.timeout < 1:
+        print("Invalid argument: timeout. Must be positive (from 1)")
+        exit(2)
+    if args.num_threads < 1:
+        print("Invalid argument: num_threads. Must be positive (from 1)")
+        exit(3)
+
     tcp_ports, udp_ports = parse_tcp_udp_ports(args.ports)
 
     scanned_ports = udp_scanner.scan(args.ip_address, udp_ports,
