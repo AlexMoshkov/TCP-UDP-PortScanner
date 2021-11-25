@@ -37,7 +37,7 @@ def check_protocol(address: str, port: int, timeout: float = 2) -> str:
         pass
     data = send_message(address, port, HTTP_MESSAGE, timeout)
     print(data)
-    if b'220' in data:
+    if b'220' == data[:3]:
         return 'smtp'
     if b'HTTP' in data:
         return 'http'
