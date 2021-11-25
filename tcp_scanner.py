@@ -62,6 +62,6 @@ def scan(address: str, ports: [int], timeout: float = 2,
                 protocol = check_protocol(address, pkt.dport, timeout)
             elif ans.haslayer(TCP) and ans[TCP].flags == 20:  # rst ack
                 status = 'close'
-            ports_infos.append(PortInfo(pkt.dport, status, "TCP",
+            ports_infos.append(PortInfo(ans.sport, status, "TCP",
                                         (ans.time - pkt.sent_time) * 1000, protocol))
     return ports_infos

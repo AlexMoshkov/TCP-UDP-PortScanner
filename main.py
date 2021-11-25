@@ -1,11 +1,12 @@
 import argparse
 import socket
-
+import logging
 import udp_scanner
 import tcp_scanner
 
 
 def main():
+    logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
     arg_parser = argparse.ArgumentParser('portscanner')
 
     arg_parser.add_argument('ip_address', type=str,
@@ -18,7 +19,7 @@ def main():
                             help="response timeout (2 seconds by default)")
     arg_parser.add_argument('-j', '--num-threads', type=int, metavar='NUM',
                             required=False, default=512,
-                            help="number of threads")
+                            help="number of threads (from 1 to 200")
     arg_parser.add_argument('-v', '--verbose', action='store_true',
                             help="enable verbose mode")
     arg_parser.add_argument('-g', '--guess', action='store_true',
@@ -35,8 +36,8 @@ def main():
     if args.timeout < 1:
         print("Invalid argument: timeout. Must be positive (from 1)")
         exit(2)
-    if args.num_threads < 1:
-        print("Invalid argument: num_threads. Must be positive (from 1)")
+    if args.num_threads < 1 or args.num_threads > 200:
+        print("Invalid argument: num_threads. Must be positive (from 1 to 200)")
         exit(3)
 
     tcp_ports, udp_ports = parse_tcp_udp_ports(args.ports)
@@ -73,9 +74,23 @@ def parse_group_ports(group: str) -> ([int], [int]):
     if len(split_group) == 2:
         for port_range in split_group[1].split(','):
             if '-' in port_range:
-                split_range = port_range.split('-')
-                ports += range(int(split_range[0]), int(split_range[1]) + 1)
+                try:
+                    left, right = [int(i) for i in port_range.split('-')]
+                except ValueError:
+                    print(f"Wrong port range. Must be from 0 to 65535")
+                    exit(6)
+                if left > right:
+                    print(f"Wrong port range : '{left}-{right}'")
+                    exit(4)
+                if right > 65535 or left < 0:
+                    print(f"Wrong port range. Must be from 0 to 65535")
+                    exit(5)
+                ports += range(left, right + 1)
             else:
+                port = int(port_range)
+                if port > 65535 or port < 0:
+                    print(f"Wrong port range. Must be from 0 to 65535")
+                    exit(6)
                 ports += [int(port_range)]
     if protocol.lower() == "tcp":
         return ports, []
