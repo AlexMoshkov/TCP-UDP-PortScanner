@@ -37,9 +37,11 @@ def check_protocol(address: str, port: int, timeout: float = 2) -> str:
         pass
     data = send_message(address, port, HTTP_MESSAGE, timeout)
     print(data)
-    if "HTTP".encode() in data:
+    if b'220' in data:
+        return 'smtp'
+    if b'HTTP' in data:
         return 'http'
-    elif "SSH".encode() in data:
+    elif b'SSH' in data:
         return 'ssh'
     return '-'
 
