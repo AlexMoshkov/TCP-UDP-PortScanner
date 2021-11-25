@@ -12,7 +12,7 @@ def check_dns_echo(query: IP, answer: IP) -> str:
         return 'dns'
     elif raw(answer[Raw]) == raw(query[DNS]):
         return 'echo'
-    return "-"
+    return '-'
 
 
 def scan(address: str, ports: list[int], timeout: float = 2,
@@ -25,7 +25,7 @@ def scan(address: str, ports: list[int], timeout: float = 2,
             timeout=timeout, verbose=0, multi=True)
         for req in unanswered:
             ports_infos.append(
-                PortInfo(req.dport, "filtered", "udp", timeout*1000))
+                PortInfo(req.dport, "open|filtered", "udp", timeout*1000))
 
         for req, ans in answered:
             status = "filtered"
@@ -37,7 +37,7 @@ def scan(address: str, ports: list[int], timeout: float = 2,
                 if ans[ICMP].type == 3 and ans[ICMP].code == 3:
                     status = "close"
                 else:
-                    status = "filtered"
+                    status = "open|filtered"
             ports_infos.append(
                 PortInfo(ans.sport, status, "udp", (ans.time - req.sent_time)*1000, protocol))
     return ports_infos

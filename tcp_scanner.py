@@ -53,9 +53,9 @@ def scan(address: str, ports: [int], timeout: float = 2,
             timeout=timeout, verbose=0, multi=True)
         for pkt in unanswered:
             ports_infos.append(
-                PortInfo(pkt.dport, "close", "TCP", timeout * 1000))
+                PortInfo(pkt.dport, "open|filtered", "TCP", timeout * 1000))
         for pkt, ans in answered:
-            status = 'filtered'
+            status = 'open|filtered'
             protocol = '-'
             if ans.haslayer(TCP) and ans[TCP].flags == 18:  # syn ack
                 status = 'open'
