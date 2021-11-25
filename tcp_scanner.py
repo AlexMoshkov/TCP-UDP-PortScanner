@@ -44,7 +44,7 @@ def check_protocol(address: str, port: int, timeout: float = 2) -> str:
 
 
 def scan(address: str, ports: [int], timeout: float = 2,
-         num_threads: int = 512) -> [PortInfo]:
+         num_threads: int = 200) -> [PortInfo]:
     ports_infos = []
     for i in range(0, len(ports), num_threads):
         ports_group = ports[i:i + num_threads]

@@ -18,7 +18,7 @@ def main():
                             required=False,
                             help="response timeout (2 seconds by default)")
     arg_parser.add_argument('-j', '--num-threads', type=int, metavar='NUM',
-                            required=False, default=512,
+                            required=False, default=200,
                             help="number of threads (from 1 to 200")
     arg_parser.add_argument('-v', '--verbose', action='store_true',
                             help="enable verbose mode")

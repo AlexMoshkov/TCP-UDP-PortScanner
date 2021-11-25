@@ -16,7 +16,7 @@ def check_dns_echo(query: IP, answer: IP) -> str:
 
 
 def scan(address: str, ports: list[int], timeout: float = 2,
-         num_threads: int = 512) -> list[PortInfo]:
+         num_threads: int = 200) -> list[PortInfo]:
     ports_infos = []
     for i in range(0, len(ports), num_threads):
         ports_group = ports[i:i + num_threads]
@@ -28,7 +28,7 @@ def scan(address: str, ports: list[int], timeout: float = 2,
                 PortInfo(req.dport, "open|filtered", "udp", timeout*1000))
 
         for req, ans in answered:
-            status = "filtered"
+            status = "open|filtered"
             protocol = '-'
             if ans.haslayer(UDP):
                 status = "open"
@@ -36,8 +36,6 @@ def scan(address: str, ports: list[int], timeout: float = 2,
             elif ans.haslayer(ICMP):
                 if ans[ICMP].type == 3 and ans[ICMP].code == 3:
                     status = "close"
-                else:
-                    status = "open|filtered"
             ports_infos.append(
                 PortInfo(ans.sport, status, "udp", (ans.time - req.sent_time)*1000, protocol))
     return ports_infos
