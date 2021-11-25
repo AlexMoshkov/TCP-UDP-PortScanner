@@ -1,4 +1,5 @@
-from dnslib import DNSRecord, DNSError
+from scapy.layers.dns import DNS
+from scapy.layers.inet import IP, UDP, ICMP
 from port_info import PortInfo
 from scapy.all import *
 
@@ -6,56 +7,40 @@ DNS_MESSAGE = b'\x00\x03\x01\x00\x00\x01\x00\x00\x00\x00\x00\x00\x01' \
               b'h\x0croot-servers\x03net\x00\x00\x01\x00\x01'
 
 
-def check_dns_echo(data: bytes, send_data: bytes) -> str:
-    try:
-        dns_parse = DNSRecord.parse(data)
+def check_dns_echo(response: IP, answer: IP) -> str:
+    if answer.haslayer(DNS):
         return "dns"
-    except DNSError:
-        pass
-
-    if data == send_data:
+    elif raw(response) == raw(answer):
         return "echo"
-    return "unknown"
-
-
-def create_udp_sock(address: str, port: int) -> socket:
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.sendto(DNS_MESSAGE, (address, port))
-    return sock
-
-
-def get_sockets_dict(address: str, ports: list[int]) -> dict[socket, int]:
-    sockets = dict()
-    for port in ports:
-        sockets[create_udp_sock(address, port)] = port
-    return sockets
+    return "-"
 
 
 def scan(address: str, ports: list[int], timeout: float = 2,
          num_threads: int = 512) -> list[PortInfo]:
     ports_infos = []
     for i in range(0, len(ports), num_threads):
-        recv_start = time.time()
-        sockets = get_sockets_dict(address, ports[i:i + num_threads])
-        rsockets, _, _ = select.select(sockets.keys(), [], [], timeout)
-        recv_time = (time.time() - recv_start) * 1000
-        for sock, port in sockets.items():
+        ports_group = ports[i:i + num_threads]
+        answered, unanswered = sr(
+            IP(dst=address) / UDP(sport=55555, dport=ports_group) / DNS(DNS_MESSAGE),
+            timeout=timeout, verbose=0, multi=True)
+        print(unanswered)
+        for req in unanswered:
+            ports_infos.append(
+                PortInfo(req.dport, "filtered", "udp", timeout*1000))
+
+        for req, ans in answered:
+            print(req.dport)
+            print(ans.sport)
             status = "filtered"
             protocol = '-'
-            if sock in rsockets:
-                try:
-                    data, addr = sock.recvfrom(4096)
-                    protocol = check_dns_echo(data, DNS_MESSAGE)
-                    status = "open"
-                except ConnectionResetError:
+            if ans.haslayer(UDP):
+                status = "open"
+                protocol = check_dns_echo(req, ans)
+            elif ans.haslayer(ICMP):
+                if ans[ICMP].type == 3 and ans[ICMP].code == 3:
                     status = "close"
+                else:
+                    status = "filtered"
             ports_infos.append(
-                PortInfo(port, status, "UDP", recv_time, protocol))
+                PortInfo(ans.sport, status, "udp", (ans.time - req.sent_time)*1000, protocol))
     return ports_infos
-
-
-if __name__ == '__main__':
-    ports_infos = scan('80.93.177.132', range(0, 100), timeout=2,
-                       num_threads=512)
-    for port_info in ports_infos:
-        print(port_info)

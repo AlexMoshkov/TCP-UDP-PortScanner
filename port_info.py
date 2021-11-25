@@ -8,9 +8,6 @@ class PortInfo:
         self.recv_time = round(recv_time, 1)
 
     def print(self, verbose: bool = False, guess: bool = False) -> None:
-        recv_time = f"{self.recv_time:<5}" if verbose else ""
+        recv_time = f"{self.recv_time:<5}ms" if verbose else ""
         protocol = self.protocol if guess else ""
-        print(f"{self.scan_protocol:<5}{self.port:<5} {recv_time} {protocol:<3}")
-
-    def __str__(self):
-        return f"{self.scan_protocol} {self.port} {self.status} {self.protocol}"
+        print(f"{self.scan_protocol:<3} {self.status:<7}{self.port:<5} {recv_time} {protocol:<3}")

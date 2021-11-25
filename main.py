@@ -21,6 +21,8 @@ def main():
                             help="enable verbose mode")
     arg_parser.add_argument('-g', '--guess', action='store_true',
                             help="definition of application layer protocols")
+    arg_parser.add_argument('-a', '--all', action='store_true',
+                            help="")
 
 
     args = arg_parser.parse_args()
@@ -35,7 +37,10 @@ def main():
                                      num_threads=args.num_threads)
 
     scanned_ports.sort(key=lambda info: (info.scan_protocol, info.port))
-    for port_info in filter(lambda p: p.status == "open", scanned_ports):
+    result = scanned_ports
+    if not args.all:
+        result = filter(lambda x: x.status == 'open', scanned_ports)
+    for port_info in result:
         port_info.print(verbose=args.verbose, guess=args.guess)
 
 
