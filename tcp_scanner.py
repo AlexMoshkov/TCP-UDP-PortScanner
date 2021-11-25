@@ -26,8 +26,6 @@ def send_message(address: str, port: int, message: bytes,
 
 def check_protocol(address: str, port: int, timeout: float = 2) -> str:
     data = send_message(address, port, DNS_MESSAGE, timeout)
-    if not data:
-        return '-'
     if data == DNS_MESSAGE:
         return 'echo'
     try:
@@ -36,7 +34,6 @@ def check_protocol(address: str, port: int, timeout: float = 2) -> str:
     except DNSError:
         pass
     data = send_message(address, port, HTTP_MESSAGE, timeout)
-    print(data)
     if b'220' == data[:3]:
         return 'smtp'
     if b'HTTP' in data:
@@ -66,5 +63,5 @@ def scan(address: str, ports: [int], timeout: float = 2,
             elif ans.haslayer(TCP) and ans[TCP].flags == 20:  # rst ack
                 status = 'close'
             ports_infos.append(PortInfo(pkt.dport, status, "TCP",
-                         (ans.time - pkt.sent_time) * 1000, protocol))
+                                        (ans.time - pkt.sent_time) * 1000, protocol))
     return ports_infos
