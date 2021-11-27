@@ -1,5 +1,7 @@
 from dnslib import DNSRecord, DNSError
 from scapy.layers.inet import IP, TCP
+from scapy.layers.l2 import Loopback
+
 from port_info import PortInfo
 from scapy.all import *
 
@@ -48,6 +50,7 @@ def scan(address: str, ports: [int], timeout: float = 2,
     ports_infos = []
     for i in range(0, len(ports), num_threads):
         ports_group = ports[i:i + num_threads]
+        conf.L3socket = L3RawSocket
         answered, unanswered = sr(
             IP(dst=address) / TCP(sport=55555, dport=ports_group, flags="S"),
             timeout=timeout, verbose=0, multi=True)
