@@ -48,6 +48,7 @@ def check_protocol(address: str, port: int, timeout: float = 2) -> str:
 def scan(address: str, ports: [int], timeout: float = 2,
          num_threads: int = 200) -> [PortInfo]:
     ports_infos = []
+    conf.L3socket = L3RawSocket
     for i in range(0, len(ports), num_threads):
         ports_group = ports[i:i + num_threads]
         conf.L3socket = L3RawSocket
@@ -60,7 +61,7 @@ def scan(address: str, ports: [int], timeout: float = 2,
             ports_infos.append(
                 PortInfo(pkt.dport, "open|filtered", "TCP", timeout * 1000))
         for pkt, ans in answered:
-            status = 'open|filtered'
+            status = 'open|f`iltered'
             protocol = '-'
             if ans.haslayer(TCP) and ans[TCP].flags == 18:  # syn ack
                 status = 'open'
@@ -68,5 +69,6 @@ def scan(address: str, ports: [int], timeout: float = 2,
             elif ans.haslayer(TCP) and ans[TCP].flags == 20:  # rst ack
                 status = 'close'
             ports_infos.append(PortInfo(ans.sport, status, "TCP",
-                                        (ans.time - pkt.sent_time) * 1000, protocol))
+                                        (ans.time - pkt.sent_time) * 1000,
+                                        protocol))
     return ports_infos

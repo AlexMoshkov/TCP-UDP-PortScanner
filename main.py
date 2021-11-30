@@ -37,7 +37,8 @@ def main():
         print("Invalid argument: timeout. Must be positive (from 1)")
         exit(2)
     if args.num_threads < 1 or args.num_threads > 200:
-        print("Invalid argument: num_threads. Must be positive (from 1 to 200)")
+        print(
+            "Invalid argument: num_threads. Must be positive (from 1 to 200)")
         exit(3)
 
     tcp_ports, udp_ports = parse_tcp_udp_ports(args.ports)
@@ -46,8 +47,8 @@ def main():
                                      timeout=args.timeout,
                                      num_threads=args.num_threads)
     scanned_ports += tcp_scanner.scan(args.ip_address, tcp_ports,
-                                     timeout=args.timeout,
-                                     num_threads=args.num_threads)
+                                      timeout=args.timeout,
+                                      num_threads=args.num_threads)
 
     scanned_ports.sort(key=lambda info: (info.scan_protocol, info.port))
     result = scanned_ports

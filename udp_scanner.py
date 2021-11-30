@@ -21,11 +21,12 @@ def scan(address: str, ports: list[int], timeout: float = 2,
     for i in range(0, len(ports), num_threads):
         ports_group = ports[i:i + num_threads]
         answered, unanswered = sr(
-            IP(dst=address) / UDP(sport=55555, dport=ports_group) / DNS(DNS_MESSAGE),
-            timeout=timeout, verbose=0)
+            IP(dst=address) / UDP(sport=55555, dport=ports_group) / DNS(
+                DNS_MESSAGE),
+            timeout=timeout, verbose=0, multi=True)
         for req in unanswered:
             ports_infos.append(
-                PortInfo(req.dport, "open|filtered", "udp", timeout*1000))
+                PortInfo(req.dport, "open|filtered", "udp", timeout * 1000))
 
         for req, ans in answered:
             status = "open|filtered"
@@ -37,5 +38,6 @@ def scan(address: str, ports: list[int], timeout: float = 2,
                 if ans[ICMP].type == 3 and ans[ICMP].code == 3:
                     status = "close"
             ports_infos.append(
-                PortInfo(ans.sport, status, "udp", (ans.time - req.sent_time)*1000, protocol))
+                PortInfo(ans.sport, status, "udp",
+                         (ans.time - req.sent_time) * 1000, protocol))
     return ports_infos
