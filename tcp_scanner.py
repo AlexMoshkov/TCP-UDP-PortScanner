@@ -51,9 +51,11 @@ def scan(address: str, ports: [int], timeout: float = 2,
     for i in range(0, len(ports), num_threads):
         ports_group = ports[i:i + num_threads]
         conf.L3socket = L3RawSocket
+        t = time.time()
         answered, unanswered = sr(
             IP(dst=address) / TCP(sport=55555, dport=ports_group, flags="S"),
-            timeout=timeout, verbose=0, multi=True)
+            timeout=timeout, verbose=0)
+        print(time.time() - t)
         for pkt in unanswered:
             ports_infos.append(
                 PortInfo(pkt.dport, "open|filtered", "TCP", timeout * 1000))

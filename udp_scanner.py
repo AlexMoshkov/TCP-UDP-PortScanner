@@ -22,7 +22,7 @@ def scan(address: str, ports: list[int], timeout: float = 2,
         ports_group = ports[i:i + num_threads]
         answered, unanswered = sr(
             IP(dst=address) / UDP(sport=55555, dport=ports_group) / DNS(DNS_MESSAGE),
-            timeout=timeout, verbose=0, multi=True)
+            timeout=timeout, verbose=0)
         for req in unanswered:
             ports_infos.append(
                 PortInfo(req.dport, "open|filtered", "udp", timeout*1000))
